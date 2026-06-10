@@ -12,24 +12,46 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('membre_tontines', function (Blueprint $table) {
-    $table->id();
+            $table->id();
 
-    $table->foreignId('tontine_id')
-          ->constrained()
-          ->onDelete('cascade');
+            // Relation tontine
+            $table->foreignId('tontine_id')
+                  ->constrained()
+                  ->onDelete('cascade');
 
-    $table->foreignId('user_id')
-          ->constrained()
-          ->onDelete('cascade');
+            // Relation utilisateur
+            $table->foreignId('user_id')
+                  ->constrained()
+                  ->onDelete('cascade');
 
-    $table->integer('position')->nullable();
-    $table->enum('role', ['admin', 'membre'])->default('membre');
-    $table->date('date_adhesion');
-    $table->integer('ordre_passage')->nullable();
+            // Rôle dans la tontine
+            $table->enum('role', [
+                'createur',
+                'admin',
+                'membre'
+            ])->default('membre');
 
-    $table->timestamps();
-});
+            // Statut du membre
+            $table->enum('status', [
+                'actif',
+                'suspendu',
+                'exclu'
+            ])->default('actif');
 
+            // Ordre de passage dans la tontine
+            $table->integer('ordre_passage')->nullable();
+
+            // Date d’adhésion
+            $table->date('date_adhesion');
+
+            // Date de sortie (optionnel)
+            $table->date('date_sortie')->nullable();
+
+            $table->timestamps();
+
+            // Un utilisateur ne peut pas rejoindre 2 fois la même tontine
+            $table->unique(['tontine_id', 'user_id']);
+        });
     }
 
     /**

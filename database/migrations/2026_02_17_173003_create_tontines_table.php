@@ -12,18 +12,49 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('tontines', function (Blueprint $table) {
-    $table->id();
-    $table->string('nom');
-    $table->text('description')->nullable();
-    $table->decimal('montant_cotisation', 10, 2);
-    $table->enum('frequence', ['journalier', 'hebdo', 'mensuel']);
-    $table->integer('nombre_membres');
-    $table->date('date_debut');
-    $table->date('date_fin')->nullable();
-    $table->enum('status', ['ouverte', 'en_cours', 'terminee'])->default('ouverte');
-    $table->timestamps();
-});
- 
+            $table->id();
+
+            // Infos générales
+            $table->string('nom');
+            $table->text('description')->nullable();
+
+            // Code d'accès à la tontine
+            $table->string('code')->unique();
+
+            // Créateur de la tontine
+            $table->foreignId('createur_id')
+                  ->constrained('users')
+                  ->onDelete('cascade');
+
+            // Paramètres financiers
+            $table->decimal('montant_cotisation', 10, 2);
+            $table->decimal('penalite_retard', 10, 2)->default(0);
+
+            // Organisation
+            $table->enum('frequence', [
+                'journalier',
+                'hebdo',
+                'mensuel'
+            ]);
+
+            $table->integer('nombre_max_membres');
+            // Suivi
+            $table->integer('tour_actuel')->default(1);
+
+            // Dates
+            $table->date('date_debut');
+            $table->date('date_fin')->nullable();
+
+            // Statut
+            $table->enum('status', [
+                'ouverte',
+                'en_cours',
+                'terminee',
+                'annulee'
+            ])->default('ouverte');
+
+            $table->timestamps();
+        });
     }
 
     /**

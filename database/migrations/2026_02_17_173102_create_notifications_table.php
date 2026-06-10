@@ -11,24 +11,37 @@ return new class extends Migration
      */
     public function up(): void
     {
-       Schema::create('notifications', function (Blueprint $table) {
-    $table->id();
+        Schema::create('notifications', function (Blueprint $table) {
+            $table->id();
 
-    $table->string('titre');
-    $table->string('email');
-    $table->text('message');
+            // Utilisateur concerné
+            $table->foreignId('user_id')
+                  ->constrained()
+                  ->onDelete('cascade');
 
-    $table->enum('type', ['paiement', 'invitation', 'rappel']);
+            // Contenu de la notification
+            $table->string('titre');
+            $table->text('message');
 
-    $table->boolean('lu')->default(false);
+            // Type de notification
+            $table->enum('type', [
+                'paiement',
+                'invitation',
+                'rappel',
+                'information'
+            ]);
 
-    $table->foreignId('user_id')
-          ->constrained()
-          ->onDelete('cascade');
+            // Statut de lecture
+            $table->boolean('lu')->default(false);
 
-    $table->timestamps();
-});
+            // Lien vers une tontine (optionnel mais utile)
+            $table->foreignId('tontine_id')
+                  ->nullable()
+                  ->constrained()
+                  ->onDelete('cascade');
 
+            $table->timestamps();
+        });
     }
 
     /**

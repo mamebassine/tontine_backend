@@ -11,26 +11,43 @@ return new class extends Migration
      */
     public function up(): void
     {
-       Schema::create('cotisations', function (Blueprint $table) {
-    $table->id();
+        Schema::create('cotisations', function (Blueprint $table) {
+            $table->id();
 
-    $table->decimal('montant', 10, 2);
-    $table->date('date_limite');
+            // Tour concerné
+            $table->foreignId('tour_id')
+                  ->constrained()
+                  ->onDelete('cascade');
 
-    $table->enum('status', ['paye', 'impaye', 'en_retard'])
-          ->default('impaye');
+            // Membre qui paie
+            $table->foreignId('user_id')
+                  ->constrained()
+                  ->onDelete('cascade');
 
-    $table->foreignId('tour_id')
-          ->constrained()
-          ->onDelete('cascade');
+            // Montant payé
+            $table->decimal('montant', 10, 2);
 
-    $table->foreignId('user_id')
-          ->constrained()
-          ->onDelete('cascade');
+            // Date limite de paiement
+            $table->date('date_limite');
 
-    $table->timestamps();
-});
+            // Date réelle de paiement
+            $table->date('date_paiement')->nullable();
 
+            // Statut du paiement
+            $table->enum('status', [
+                'paye',
+                'impaye',
+                'en_retard'
+            ])->default('impaye');
+
+            // Référence de paiement (mobile money, cash, etc.)
+            $table->string('reference_paiement')->nullable();
+
+            $table->timestamps();
+
+            // Empêcher doublon paiement pour un même tour
+            $table->unique(['tour_id', 'user_id']);
+        });
     }
 
     /**
