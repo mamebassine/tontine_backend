@@ -9,13 +9,22 @@ class Tontine extends Model
     protected $fillable = [
         'nom',
         'description',
+        'code',
+        'createur_id',
         'montant_cotisation',
+        'penalite_retard',
         'frequence',
-        'nombre_membres',
+        'nombre_max_membres',
+        'tour_actuel',
         'date_debut',
         'date_fin',
         'status'
     ];
+
+    public function createur()
+    {
+        return $this->belongsTo(User::class, 'createur_id');
+    }
 
     public function membres()
     {
@@ -28,7 +37,14 @@ class Tontine extends Model
     }
 
     public function cotisations()
-    {
-        return $this->hasMany(Cotisation::class);
-    }
+{
+    return $this->hasManyThrough(
+        Cotisation::class,
+        Tour::class,
+        'tontine_id', // FK sur tours
+        'tour_id',    // FK sur cotisations
+        'id',
+        'id'
+    );
+}
 }

@@ -3,111 +3,99 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\Tontine;
 use Illuminate\Http\Request;
+use App\Models\Tontine;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Str;
 
 class TontineController extends Controller
 {
     /**
-     * Liste des tontines
+     * LISTE DES TONTINES
      */
     public function index()
     {
-        return response()->json(Tontine::all(), 200);
+        $tontines = Tontine::with('createur')->get();
+
+        return response()->json($tontines);
     }
 
     /**
-     * Création d'une tontine
+     * CREER UNE TONTINE
      */
     public function store(Request $request)
     {
         $request->validate([
-            'nom' => 'required|string|max:255',
-            'montant_cotisation' => 'required|numeric',
+            'nom' => 'required',
+            'description' => 'nullable',
+            'montant_cotisation' => 'required',
             'frequence' => 'required|in:journalier,hebdo,mensuel',
-            'nombre_membres' => 'required|integer|min:1',
+            'nombre_max_membres' => 'required|integer',
             'date_debut' => 'required|date',
+            'date_fin' => 'nullable|date'
         ]);
 
         $tontine = Tontine::create([
             'nom' => $request->nom,
             'description' => $request->description,
+            'code' => strtoupper(Str::random(8)),
+            'createur_id' => Auth::id(),
             'montant_cotisation' => $request->montant_cotisation,
+            'penalite_retard' => 0,
             'frequence' => $request->frequence,
-            'nombre_membres' => $request->nombre_membres,
+            'nombre_max_membres' => $request->nombre_max_membres,
+            'tour_actuel' => 1,
             'date_debut' => $request->date_debut,
             'date_fin' => $request->date_fin,
-            'status' => $request->status ?? 'ouverte'
+            'status' => 'ouverte'
         ]);
 
         return response()->json([
             'message' => 'Tontine créée avec succès',
-            'data' => $tontine
-        ], 201);
+            'tontine' => $tontine
+        ]);
     }
 
     /**
-     * Afficher une tontine
+     * AFFICHER UNE TONTINE
      */
     public function show(string $id)
     {
-        $tontine = Tontine::find($id);
+        $tontine = Tontine::with([
+            'createur',
+            'membres',
+            'tours',
+            'cotisations'
+        ])->findOrFail($id);
 
-        if (!$tontine) {
-            return response()->json([
-                'message' => 'Tontine introuvable'
-            ], 404);
-        }
-
-        return response()->json($tontine, 200);
+        return response()->json($tontine);
     }
 
     /**
-     * Modifier une tontine
+     * MODIFIER UNE TONTINE
      */
     public function update(Request $request, string $id)
     {
-        $tontine = Tontine::find($id);
-
-        if (!$tontine) {
-            return response()->json([
-                'message' => 'Tontine introuvable'
-            ], 404);
-        }
-
-        $request->validate([
-            'nom' => 'sometimes|string|max:255',
-            'montant_cotisation' => 'sometimes|numeric',
-            'frequence' => 'sometimes|in:journalier,hebdo,mensuel',
-            'nombre_membres' => 'sometimes|integer|min:1',
-            'status' => 'sometimes|in:ouverte,en_cours,terminee'
-        ]);
+        $tontine = Tontine::findOrFail($id);
 
         $tontine->update($request->all());
 
         return response()->json([
-            'message' => 'Tontine modifiée avec succès',
-            'data' => $tontine
-        ], 200);
+            'message' => 'Tontine mise à jour',
+            'tontine' => $tontine
+        ]);
     }
 
     /**
-     * Supprimer une tontine
+     * SUPPRIMER UNE TONTINE
      */
     public function destroy(string $id)
     {
-        $tontine = Tontine::find($id);
-
-        if (!$tontine) {
-            return response()->json([
-                'message' => 'Tontine introuvable'
-            ], 404);
-        }
-
+        $tontine = Tontine::findOrFail($id);
         $tontine->delete();
 
         return response()->json([
-            'message' => 'Tontine supprimée avec succès'
-        ], 200);
+            'message' => 'Tontine supprimée'
+        ]);
     }
 }

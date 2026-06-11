@@ -1,35 +1,46 @@
 <?php
 
 namespace App\Http\Controllers\Api;
-use Illuminate\Support\Facades\Auth;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\User;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 use Tymon\JWTAuth\Facades\JWTAuth;
 
 class AuthController extends Controller
 {
-    // REGISTER
+    /**
+     * INSCRIPTION
+     */
     public function register(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'name' => 'required',
+            'name' => 'required|string|max:255',
             'email' => 'required|email|unique:users',
+            'phone' => 'required|unique:users',
+
             'password' => 'required|min:6',
+
+            'type_piece' => 'required|in:carte_identite_nationale,passeport',
+            'numero_piece' => 'required|unique:users',
+
         ]);
 
         if ($validator->fails()) {
-            return response()->json($validator->errors(), 422);
+            return response()->json([
+                'errors' => $validator->errors()
+            ], 422);
         }
 
         $user = User::create([
             'name' => $request->name,
             'email' => $request->email,
             'phone' => $request->phone,
-            'photo' => $request->photo,
+            'type_piece' => $request->type_piece,
+            'numero_piece' => $request->numero_piece,
             'password' => Hash::make($request->password),
             'role' => 'membre',
             'status' => 'actif'
@@ -38,14 +49,28 @@ class AuthController extends Controller
         $token = JWTAuth::fromUser($user);
 
         return response()->json([
+            'message' => 'Utilisateur créé avec succès',
             'user' => $user,
             'token' => $token
-        ]);
+        ], 201);
     }
 
-    // LOGIN
+    /**
+     * CONNEXION
+     */
     public function login(Request $request)
     {
+        $validator = Validator::make($request->all(), [
+            'email' => 'required|email',
+            'password' => 'required'
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
         $credentials = $request->only('email', 'password');
 
         if (!$token = JWTAuth::attempt($credentials)) {
@@ -54,25 +79,59 @@ class AuthController extends Controller
             ], 401);
         }
 
+        $user = Auth::user();
+
+        // Vérification du statut du compte
+        if ($user->status === 'bloque') {
+            return response()->json([
+                'message' => 'Compte bloqué'
+            ], 403);
+        }
+
         return response()->json([
-            'token' => $token,
+            'message' => 'Connexion réussie',
+            'user' => $user,
+            'token' => $token
+        ]);
+    }
+
+    /**
+     * PROFIL UTILISATEUR
+     */
+    public function profile()
+    {
+        return response()->json([
             'user' => Auth::user()
         ]);
     }
 
-    // PROFILE
-    public function profile()
-    {
-        return response()->json(Auth::user());
-    }
-
-    // LOGOUT
+    /**
+     * LOGOUT
+     */
     public function logout()
     {
-        JWTAuth::invalidate(JWTAuth::getToken());
+        try {
+            JWTAuth::invalidate(JWTAuth::getToken());
+
+            return response()->json([
+                'message' => 'Déconnexion réussie'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Erreur lors du logout'
+            ], 500);
+        }
+    }
+
+    /**
+     * REFRESH TOKEN (OPTIONNEL MAIS PRO)
+     */
+    public function refresh()
+    {
+        $newToken = JWTAuth::refresh(JWTAuth::getToken());
 
         return response()->json([
-            'message' => 'Déconnexion réussie'
+            'token' => $newToken
         ]);
     }
 }

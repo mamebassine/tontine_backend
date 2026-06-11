@@ -2,8 +2,8 @@
 
 namespace App\Models;
 
-use Illuminate\Notifications\Notifiable;
 use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Notifications\Notifiable;
 use Tymon\JWTAuth\Contracts\JWTSubject;
 
 class User extends Authenticatable implements JWTSubject
@@ -14,7 +14,10 @@ class User extends Authenticatable implements JWTSubject
         'name',
         'email',
         'phone',
+        'type_piece',
+        'numero_piece',
         'photo',
+        'adresse',
         'password',
         'role',
         'status'
@@ -27,8 +30,10 @@ class User extends Authenticatable implements JWTSubject
 
     protected $casts = [
         'password' => 'hashed',
+        'email_verified_at' => 'datetime',
     ];
 
+    // JWT
     public function getJWTIdentifier()
     {
         return $this->getKey();
