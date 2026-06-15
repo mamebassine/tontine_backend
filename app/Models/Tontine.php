@@ -47,4 +47,9 @@ class Tontine extends Model
         'id'
     );
 }
+
+public function notifications()
+{
+    return $this->hasMany(Notification::class);
+}
 }
